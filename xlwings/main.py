@@ -492,11 +492,6 @@ class Book(object):
 
         self.impl = impl
 
-    def offset(self,row,col):
-        """wb:workbook, cell:"A1", row: offset row, col: offset col"""
-        return Range(xlplatform.get_worksheet_name(self.xl_sheet),
-                     (self.row1+row, self.col1+col))
-
     @property
     def api(self):
         """
