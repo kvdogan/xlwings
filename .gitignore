@@ -55,3 +55,25 @@ nosetests.xml
 
 # Translations
 *.mo
+
+# google analytics example
+client_secrets.json
+
+# Visual Studio related garbage and binaries
+*.suo
+*.opensdf
+*.sdf
+Win32/
+x64/
+
+# binaries
+*.dll
+aspose.cells
+
+#eclipse IDE
+*.project
+*.pydevproject
+
+venv
+
+

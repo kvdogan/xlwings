@@ -3,100 +3,123 @@ Quickstart
 
 This guide assumes you have xlwings already installed. If that's not the case, head over to :ref:`installation`.
 
-Interact with Excel from Python
--------------------------------
+1. Scripting: Automate/interact with Excel from Python
+------------------------------------------------------
 
-Writing/reading values to/from Excel and adding a chart is as easy as:
+Establish a connection to a workbook:
 
-.. code-block:: python
+    >>> import xlwings as xw
+    >>> wb = xw.Book()  # this will create a new workbook
+    >>> wb = xw.Book('FileName.xlsx')  # connect to an existing file in the current working directory
+    >>> wb = xw.Book(r'C:\path\to\file.xlsx')  # on Windows: use raw strings to escape backslashes
 
-    >>> from xlwings import Workbook, Sheet, Range, Chart
-    >>> wb = Workbook()  # Creates a connection with a new workbook
-    >>> Range('A1').value = 'Foo 1'
-    >>> Range('A1').value
+If you have the same file open in two instances of Excel, you need to fully qualify it and include the app instance:
+
+    >>> xw.apps[0].books['FileName.xlsx']
+
+Instantiate a sheet object:
+
+    >>> sht = wb.sheets['Sheet1']
+
+Reading/writing values to/from ranges is as easy as:
+
+    >>> sht.range('A1').value = 'Foo 1'
+    >>> sht.range('A1').value
     'Foo 1'
-    >>> Range('A1').value = [['Foo 1', 'Foo 2', 'Foo 3'], [10.0, 20.0, 30.0]]
-    >>> Range('A1').table.value  # or: Range('A1:C2').value
+
+There are many **convenience features** available, e.g. Range expanding:
+
+    >>> sht.range('A1').value = [['Foo 1', 'Foo 2', 'Foo 3'], [10.0, 20.0, 30.0]]
+    >>> sht.range('A1').expand().value
     [['Foo 1', 'Foo 2', 'Foo 3'], [10.0, 20.0, 30.0]]
-    >>> Sheet(1).name
-    'Sheet1'
-    >>> chart = Chart.add(source_data=Range('A1').table)
 
-The Range and Chart objects as used above will refer to the active sheet of the current Workbook ``wb``. Include the
-Sheet name like this:
+**Powerful converters** handle most data types of interest, including Numpy arrays and Pandas DataFrames in both directions:
 
-.. code-block:: python
+    >>> import pandas as pd
+    >>> df = pd.DataFrame([[1,2], [3,4]], columns=['a', 'b'])
+    >>> sht.range('A1').value = df
+    >>> sht.range('A1').options(pd.DataFrame, expand='table').value
+           a    b
+    0.0  1.0  2.0
+    1.0  3.0  4.0
 
-    Range('Sheet1', 'A1:C3').value
-    Range(1, (1,1), (3,3)).value  # index notation
-    Chart.add('Sheet1', source_data=Range('Sheet1', 'A1').table)
+**Matplotlib** figures can be shown as pictures in Excel:
 
-Qualify the Workbook additionally like this:
+    >>> import matplotlib.pyplot as plt
+    >>> fig = plt.figure()
+    >>> plt.plot([1, 2, 3, 4, 5])
+    [<matplotlib.lines.Line2D at 0x1071706a0>]
+    >>> sht.pictures.add(fig, name='MyPlot', update=True)
+    <Picture 'MyPlot' in <Sheet [Workbook4]Sheet1>>
 
-.. code-block:: python
+**Shortcut** for the active sheet: ``xw.Range``
 
-    Range('Sheet1', 'A1', wkb=wb).value
-    Chart.add('Sheet1', wkb=wb, source_data=Range('Sheet1', 'A1', wkb=wb).table)
-    Sheet(1, wkb=wb).name
+If you want to quickly talk to the active sheet in the active workbook, you don't need instantiate a workbook
+and sheet object, but can simply do:
 
-or simply set the current workbook first:
+    >>> import xlwings as xw
+    >>> xw.Range('A1').value = 'Foo'
+    >>> xw.Range('A1').value
+    'Foo'
 
-.. code-block:: python
+**Note:** You should only use ``xw.Range`` when interacting with Excel. In scripts, you should always
+go via book and sheet objects as shown above.
 
-    wb.set_current()
-    Range('Sheet1', 'A1').value
-    Chart.add('Sheet1', source_data=Range('Sheet1', 'A1').table)
-    Sheet(1).name
+2. Macros: Call Python from Excel
+---------------------------------
 
-These commands also work seamlessly with **NumPy arrays** and **Pandas DataFrames**, see :ref:`datastructures` for details.
-
-Call Python from Excel
-----------------------
-
-If, for example, you want to fill your spreadsheet
-with standard normally distributed random numbers, your VBA code is just one line:
+You can call Python functions from VBA using the ``RunPython`` function:
 
 .. code-block:: vb.net
 
-    Sub RandomNumbers()
-        RunPython ("import mymodule; mymodule.rand_numbers()")
+    Sub HelloWorld()
+        RunPython ("import hello; hello.world()")
     End Sub
 
-This essentially hands over control to ``mymodule.py``:
+Per default, ``RunPython`` expects ``hello.py`` in the same directory as the Excel file. Refer to the calling Excel
+book by using ``xw.Book.caller``:
 
 .. code-block:: python
 
+    # hello.py
     import numpy as np
-    from xlwings import Workbook, Range
+    import xlwings as xw
 
-    def rand_numbers():
-        """ produces standard normally distributed random numbers with shape (n,n)"""
-        wb = Workbook()  # Creates a reference to the calling Excel file
-        n = Range('Sheet1', 'B1').value  # Write desired dimensions into Cell B1
-        rand_num = np.random.randn(n, n)
-        Range('Sheet1', 'C3').value = rand_num
+    def world():
+        wb = xw.Book.caller()
+        wb.sheets[0].range('A1').value = 'Hello World!'
 
 
-To make this run, just import the VBA module ``xlwings.bas`` in the VBA editor (Open the VBA editor with ``Alt-F11``,
-then go to ``File > Import File...`` and import the ``xlwings.bas`` file. ). It can be found in the directory of
-your ``xlwings`` installation.
+To make this run, you'll need to have the xlwings add-in installed. The easiest way to get everything set
+up is to use the xlwings command line client from either a command prompt on Windows or a terminal on Mac: ``xlwings quickstart myproject``.
 
-.. note:: Always instantiate the ``Workbook`` within the function that is called from Excel and not outside as global
-    variable. Older versions of the docs/samples were showing the wrong approach.
+For details about the addin, see :ref:`xlwings_addin`.
 
-For further details, see :ref:`vba`.
+3. UDFs: User Defined Functions (Windows only)
+----------------------------------------------
 
-Easy deployment
----------------
+Writing a UDF in Python is as easy as:
 
-Deployment is really the part where xlwings shines:
+.. code-block:: python
 
-* Just zip-up your Spreadsheet with your Python code and send it around. The receiver only needs to have an
-  installation of Python with xlwings (and obviously all the other packages you're using).
-* There is no need to install any Excel add-in.
-* If this still sounds too complicated, just freeze your Python code into an executable and use
-  ``RunFrozenPython`` instead of ``RunPython``. This gives you a standalone version of your Spreadsheet tool without any
-  dependencies (``RunFrozenPython`` is currently only available on Windows).
+    import xlwings as xw
 
+    @xw.func
+    def hello(name):
+        return 'Hello {0}'.format(name)
+
+Converters can be used with UDFs, too. Again a Pandas DataFrame example:
 
 
+.. code-block:: python
+
+    import xlwings as xw
+    import pandas as pd
+
+    @xw.func
+    @xw.arg('x', pd.DataFrame)
+    def correl2(x):
+        # x arrives as DataFrame
+        return x.corr()
+
+Import this function into Excel by clicking the import button of the xlwings add-in: For further details, see :ref:`udfs`.

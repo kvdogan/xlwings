@@ -41,14 +41,20 @@ class Mock(object):
         if name in ('__file__', '__path__'):
             return '/dev/null'
         elif name[0] == name[0].upper():
-            mockType = type(name, (), {})
+            mockType = Mock()  # type(name, (), {})
             mockType.__module__ = __name__
             return mockType
         else:
             return Mock()
+            
+    @classmethod
+    def __getitem__(cls, key):
+        return Mock()
+    
 
-MOCK_MODULES = ['win32com', 'win32com.client', 'pywintypes', 'pythoncom', 'win32timezone', 'appscript', 'psutil',
-                'xlplatform']
+MOCK_MODULES = ['win32com', 'win32com.client', 'pywintypes', 'pythoncom', 'win32timezone', 'appscript',
+                'appscript.reference', 'psutil', 'xlplatform', 'atexit', 'aem', 'win32com.server', 'win32com.server.util',
+                'win32com.server.dispatcher', 'win32com.server.policy']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
@@ -70,7 +76,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.extlinks']
 
-autodoc_member_order = 'bysource'
+# autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -86,7 +92,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'xlwings'
-copyright = u'2014, Zoomer Analytics LLC.'
+copyright = u'2014-2016, Zoomer Analytics LLC'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -142,10 +148,8 @@ extlinks = {'issue': ('https://github.com/ZoomerAnalytics/xlwings/issues/%s',
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-# if not on_rtd:  # only import and set the theme if we're building docs locally
-#     import sphinx_rtd_theme
-#     html_theme = 'sphinx_rtd_theme'
-#     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -241,7 +245,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual], toctree_only).
 latex_documents = [
-    ('index', 'xlwings.tex', u'xlwings - Make Excel Fly!',
+    ('index_latex', 'xlwings.tex', u'xlwings - Make Excel Fly!',
      u'Zoomer Analytics LLC', 'manual', True),
 ]
 
